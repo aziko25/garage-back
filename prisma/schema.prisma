@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Owner {
+  ADMIN
+  INVESTOR
+  PARTNER
+}
+
+enum Status {
+  PLEDGE
+  PAID
+  DUTY
+}
+
+enum PaymentType {
+  CASH
+  CARD
+}
+
+model Car {
+  id        Int     @id @default(autoincrement())
+  model     String
+  carNumber String
+  run       String
+  owner     Owner
+  isActive  Boolean @default(true)
+  Rent      Rent[]
+}
+
+model Rent {
+  id               Int         @id @default(autoincrement())
+  name             String
+  phoneNumber      String
+  startDate        DateTime
+  endDate          DateTime
+  status           Status
+  guaranteeAmount  Int
+  guaranteeType    PaymentType
+  amount           Int
+  paymentType      PaymentType
+  incomePersentage Int[]
+  adminIncome      Int
+  investorIncome   Int
+  partnerIncome    Int
+  isGuaranteeReturned Boolean? @default(false)
+  Car              Car         @relation(fields: [carId], references: [id])
+  carId            Int
+}
+
+model Income {
+  id        Int      @id @default(autoincrement())
+  owner     Owner
+  comment   String
+  amount    Int
+  createdAt DateTime @default(now())
+}
+
+model Outcome {
+  id        Int      @id @default(autoincrement())
+  owner     Owner
+  comment   String
+  amount    Int
+  createdAt DateTime @default(now())
+}
