@@ -13,7 +13,7 @@ export class MonitoringService {
   
     return await this.prisma.rent.count({
       where: {
-        OR: [{ status: 'PAID' }, { status: 'DUTY' }],
+        status: 'PAID',
       },
       skip,
       take: pageSize,
@@ -33,7 +33,7 @@ export class MonitoringService {
       },
       where: {
         status: {
-          in: ['PAID', 'DUTY'], // Status should be 'PAID' or 'DUTY'
+          in: ['PAID'], // Status should be 'PAID' or 'DUTY'
         },
       },
       skip,
@@ -98,7 +98,7 @@ export class MonitoringService {
         guaranteeAmount: true,
       },
       where: {
-        status: 'PLEDGE',
+        isGuaranteeReturned: false,
         guaranteeType: 'CASH',
       },
       skip,
@@ -110,7 +110,7 @@ export class MonitoringService {
         guaranteeAmount: true,
       },
       where: {
-        status: 'PLEDGE',
+        isGuaranteeReturned: false,
         guaranteeType: 'CARD',
       },
       skip,
@@ -386,7 +386,7 @@ export class MonitoringService {
       const [rentCount, incomeCount, outcomeCount] = await Promise.all([
         this.prisma.rent.count({
           where: {
-            OR: [{ status: 'PAID' }, { status: 'DUTY' }],
+            status: 'PAID',
           },
         }),
         this.prisma.income.count(),
@@ -400,7 +400,8 @@ export class MonitoringService {
       // Fetch paginated rent, income, and outcome histories
       const rentHistory = await this.prisma.rent.findMany({
         where: {
-          OR: [{ status: 'PAID' }, { status: 'DUTY' }],
+          status: 'PAID' ,
+          //isGuaranteeReturned: true,
         },
         include: {
           Car: true,
@@ -533,18 +534,14 @@ export class MonitoringService {
      
 
 
-
-
-
-
     async findRentsByMonth(year: number, month: number) {
       return await this.prisma.rent.count({
         where: {
           AND: [
             { startDate: { gte: new Date(year, month - 1, 1) } },
             { startDate: { lt: new Date(year, month, 1) } },
-            { OR: [{ status: 'PAID' }, { status: 'DUTY' }] },
-            { isGuaranteeReturned: true},
+            { status: 'PAID' },
+            //{ isGuaranteeReturned: true},
           ],
         },
       });
@@ -562,9 +559,9 @@ export class MonitoringService {
             lt: new Date(year, month, 1), // Дата окончания аренды < начало следующего месяца
           },
           status: {
-            in: ['PAID', 'DUTY'], // Статус должен быть 'PAID' или 'DUTY'
+            in: ['PAID'], // Статус должен быть 'PAID' или 'DUTY'
           },
-          AND: [{ isGuaranteeReturned: true}]
+          //AND: [{ isGuaranteeReturned: true}]
         },
       });
   
@@ -621,7 +618,7 @@ export class MonitoringService {
           guaranteeAmount: true,
         },
         where: {
-          AND: [{ status: 'PLEDGE' }, { guaranteeType: 'CASH' }],
+          AND: [{ isGuaranteeReturned: false }, { guaranteeType: 'CASH' }],
         },
       });
       const card_pledge = await this.prisma.rent.aggregate({
@@ -629,7 +626,7 @@ export class MonitoringService {
           guaranteeAmount: true,
         },
         where: {
-          AND: [{ status: 'PLEDGE' }, { guaranteeType: 'CARD' }],
+          AND: [{ isGuaranteeReturned: false }, { guaranteeType: 'CARD' }],
         },
       });
       const sum = {

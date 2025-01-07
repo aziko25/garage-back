@@ -24,6 +24,8 @@ export class AdminController {
 
     console.log("api incoming")
 
+    console.log(body.name, " ", body.password);
+
     return this.adminService.login(body.name, body.password);
   }
 

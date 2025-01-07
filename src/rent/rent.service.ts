@@ -31,12 +31,33 @@ export class RentService {
         },
       });
     } catch (error) {
+      console.log(error);
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
     }
   }
 
-  async findAll() {
-    return await this.prisma.rent.findMany({ orderBy: { id: 'desc' } });
+  async findAll(guaranteeCard: boolean | null, guaranteeCash: boolean | null) {
+
+    const whereConditions: any[] = [];
+  
+    // Add the guaranteeType condition if either guaranteeCash or guaranteeCard is true
+    if (guaranteeCash) {
+      whereConditions.push({ guaranteeType: 'CASH' });
+      whereConditions.push({ isGuaranteeReturned: false });
+    }
+    if (guaranteeCard) {
+      whereConditions.push({ guaranteeType: 'CARD' });
+      whereConditions.push({ isGuaranteeReturned: false });
+    }
+
+    return await this.prisma.rent.findMany({
+      where: {
+        AND: whereConditions,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+    });    
   }
 
   async findSome(take: number, skip: number) {

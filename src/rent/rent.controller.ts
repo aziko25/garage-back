@@ -15,6 +15,7 @@ import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { AdminGuard } from 'src/admin/admin.guard';
+import { Query } from '@nestjs/common';
 
 @UseGuards(AdminGuard)
 @ApiBearerAuth()
@@ -29,8 +30,14 @@ export class RentController {
   }
 
   @Get()
-  findAll() {
-    return this.rentService.findAll();
+  findAll(
+        @Query('guaranteeCard') guaranteeCard: string | null,
+        @Query('guaranteeCash') guaranteeCash: string | null) {
+
+        const guaranteeCardBool = guaranteeCard === 'true' ? true : false;
+        const guaranteeCashBool = guaranteeCash === 'true' ? true : false;
+      
+        return this.rentService.findAll(guaranteeCardBool, guaranteeCashBool);
   }
 
   @ApiOperation({ summary: 'Get some rents with pagination' })

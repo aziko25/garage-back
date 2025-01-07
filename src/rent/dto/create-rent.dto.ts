@@ -6,7 +6,7 @@ export class CreateRentDto {
   phoneNumber: string;
   startDate: Date;
   endDate: Date;
-  @ApiProperty({ enum: ['PLEDGE', 'PENDING', 'PAID', 'DUTY'] })
+  @ApiProperty({ enum: ['PAID', 'IN_PROCESS', 'DUTY'] })
   status: Status;
   guaranteeType: PaymentType;
   guaranteeAmount: number;

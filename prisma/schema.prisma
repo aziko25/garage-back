@@ -23,6 +23,7 @@ enum Status {
   PLEDGE
   PAID
   DUTY
+  IN_PROCESS
 }
 
 enum PaymentType {

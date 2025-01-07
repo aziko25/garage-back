@@ -32,11 +32,15 @@ export class MonitoringController {
   }
 
 
-  @ApiOperation({ summary: ' Rents count for month ' })
+  @ApiOperation({ summary: 'Rents count for month' })
   @Get('rents/:year/:month')
-  findRentsByMonth(@Param('year') year: string, @Param('month') month: string) {
+  findRentsByMonth(
+    @Param('year') year: string,
+    @Param('month') month: string,
+  ) {
+
     return this.monitoringService.findRentsByMonth(+year, +month);
-  }
+}
 
   @ApiOperation({ summary: 'Sum for month ' })
   @Get('sum/:year/:month')
