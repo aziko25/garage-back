@@ -42,23 +42,36 @@ model Car {
 }
 
 model Rent {
-  id               Int         @id @default(autoincrement())
-  name             String
-  phoneNumber      String
-  startDate        DateTime
-  endDate          DateTime
-  status           Status
-  guaranteeAmount  Int
-  guaranteeType    PaymentType
-  amount           Int
-  paymentType      PaymentType
-  incomePersentage Int[]
-  adminIncome      Int
-  investorIncome   Int
-  partnerIncome    Int
-  isGuaranteeReturned Boolean? @default(false)
-  Car              Car         @relation(fields: [carId], references: [id])
-  carId            Int
+  id                  Int               @id @default(autoincrement())
+  name                String
+  phoneNumber         String
+  startDate           DateTime
+  endDate             DateTime
+  status              Status
+  guaranteeAmount     Int
+  guaranteeType       PaymentType
+  amount              Int
+  paymentType         PaymentType
+  incomePersentage    Int[]
+  adminIncome         Int
+  investorIncome      Int
+  partnerIncome       Int
+  isGuaranteeReturned Boolean?          @default(false)
+  isRentExtended      Boolean?          @default(false)
+  Car                 Car               @relation(fields: [carId], references: [id])
+  carId               Int
+  Rent_Extensions     Rent_Extensions[]
+}
+
+model Rent_Extensions {
+  id                   Int         @id @default(autoincrement())
+  createdAt           DateTime     @default(now())
+  Rent                 Rent        @relation(fields: [rentId], references: [id])
+  rentId               Int
+  extendedDaysQuantity Int
+  status               Status
+  amount               Int
+  paymentType          PaymentType
 }
 
 model Income {

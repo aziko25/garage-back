@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateRentDto } from './dto/create-rent.dto';
+import { CreateRentExtensionDto } from './dto/create-rent-extension.dto';
 import { UpdateRentDto } from './dto/update-rent.dto';
 import { PrismaService } from 'src/prisma.service';
 
@@ -57,7 +58,122 @@ export class RentService {
       orderBy: {
         id: 'desc',
       },
+      include: {
+        Rent_Extensions: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
     });    
+  }
+
+  async createExtension(id: string, createRentExtensionDto: CreateRentExtensionDto) {
+    try {
+      console.log("API request received");
+  
+      // Validate the number of days
+      if (createRentExtensionDto.extendedDaysQuantity <= 0) {
+        throw new HttpException('Days must be greater than 0', HttpStatus.BAD_REQUEST);
+      }
+  
+      const rentId = parseInt(id, 10);
+  
+      // Check if the Rent record exists
+      const rent = await this.prisma.rent.findUnique({
+        where: { id: rentId },
+      });
+
+      await this.prisma.rent.update({
+        where: { id: rentId },
+        data: {
+          isRentExtended: true,
+        }
+      });
+  
+      if (!rent) {
+        throw new HttpException('Rent record not found', HttpStatus.NOT_FOUND);
+      }
+  
+      // Create a new rent extension
+      return await this.prisma.rent_Extensions.create({
+        data: {
+          rentId,
+          extendedDaysQuantity: createRentExtensionDto.extendedDaysQuantity,
+          status: createRentExtensionDto.status,
+          amount: createRentExtensionDto.amount,
+          paymentType: createRentExtensionDto.paymentType,
+        },
+      });
+    } catch (error) {
+      console.error('Error creating rent extension:', error.message || error);
+      throw new HttpException(error.message || 'Internal Server Error', HttpStatus.BAD_REQUEST);
+    }
+  }  
+
+  async updateExtension(
+    id: string,
+    updateRentExtensionDto: Partial<CreateRentExtensionDto>,
+  ) {
+    try {
+      console.log("API update request received");
+  
+      const extensionId = parseInt(id, 10);
+  
+      // Check if the rent extension record exists
+      const extension = await this.prisma.rent_Extensions.findUnique({
+        where: { id: extensionId },
+      });
+  
+      if (!extension) {
+        throw new HttpException(
+          'Rent extension record not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+  
+      // Validate the update data
+      if (
+        updateRentExtensionDto.extendedDaysQuantity !== undefined &&
+        updateRentExtensionDto.extendedDaysQuantity <= 0
+      ) {
+        throw new HttpException(
+          'Days must be greater than 0',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+  
+      // Update the rent extension record
+      return await this.prisma.rent_Extensions.update({
+        where: { id: extensionId },
+        data: {
+          extendedDaysQuantity: updateRentExtensionDto.extendedDaysQuantity,
+          status: updateRentExtensionDto.status,
+          amount: updateRentExtensionDto.amount,
+          paymentType: updateRentExtensionDto.paymentType,
+        },
+      });
+    } catch (error) {
+      console.error('Error updating rent extension:', error.message || error);
+      throw new HttpException(
+        error.message || 'Internal Server Error',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  async deleteExtension(id: number) {
+
+    return await this.prisma.rent_Extensions.delete({
+      where: { id: +id },
+    });
+  }
+  
+  async getExtensionById(id: number) {
+
+    return await this.prisma.rent_Extensions.findUnique({
+      where: { id: +id },
+    });
   }
 
   async findSome(take: number, skip: number) {

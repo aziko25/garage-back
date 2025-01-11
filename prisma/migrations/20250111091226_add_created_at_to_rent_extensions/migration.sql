@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Rent_Extensions" ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { RentService } from './rent.service';
 import { CreateRentDto } from './dto/create-rent.dto';
+import { CreateRentExtensionDto } from './dto/create-rent-extension.dto';
 import { UpdateRentDto } from './dto/update-rent.dto';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
@@ -27,6 +28,30 @@ export class RentController {
   @Post()
   create(@Body() createRentDto: CreateRentDto) {
     return this.rentService.create(createRentDto);
+  }
+
+  @Post('/extend/create/:id')
+  createExtension(@Param('id') id: string, 
+                  @Body() createRentExtensionDto: CreateRentExtensionDto) {
+    return this.rentService.createExtension(id, createRentExtensionDto);
+  }
+
+  @Patch('/extend/update/:id')
+  updateExtension(@Param('id') id: string, 
+                  @Body() createRentExtensionDto: CreateRentExtensionDto) {
+    return this.rentService.updateExtension(id, createRentExtensionDto);
+  }
+
+  @Delete('/extension/delete/:id')
+  deleteExtension(@Param('id') id: string) {
+
+    return this.rentService.deleteExtension(+id);
+  }
+
+  @Get('/extend/byId/:id')
+  getExtensionById(@Param('id') id: number) {
+
+    return this.rentService.getExtensionById(id);
   }
 
   @Get()
