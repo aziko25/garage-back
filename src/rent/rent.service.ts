@@ -230,6 +230,11 @@ export class RentService {
   }
 
   async remove(id: number) {
+
+    await this.prisma.rent_Extensions.deleteMany({
+      where: { rentId: + id},
+    })
+
     return await this.prisma.rent.delete({
       where: { id: +id },
     });

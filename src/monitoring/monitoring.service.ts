@@ -27,18 +27,29 @@ export class MonitoringService {
     const skip = (page - 1) * pageSize;
     const take = pageSize;
   
-    const rentIncome = await this.prisma.rent.aggregate({
-      _sum: {
-        amount: true,
-      },
+    const rentData = await this.prisma.rent.findMany({
       where: {
         status: {
-          in: ['PAID'], // Status should be 'PAID' or 'DUTY'
+          in: ['PAID'], // Fetch only PAID rents
+        },
+      },
+      include: {
+        Rent_Extensions: {
+          select: {
+            amount: true, // Include only the amount from extensions
+          },
         },
       },
       skip,
-      take: take,
+      take,
     });
+    
+    // Calculate the total sum
+    const totalRentIncome = rentData.reduce((total, rent) => {
+      const rentAmount = rent.amount || 0;
+      const extensionsAmount = rent.Rent_Extensions.reduce((sum, ext) => sum + (ext.amount || 0), 0);
+      return total + rentAmount + extensionsAmount;
+    }, 0);
   
     const income = await this.prisma.income.aggregate({
       _sum: {
@@ -119,12 +130,12 @@ export class MonitoringService {
   
     const sum = {
       income: +income._sum.amount || 0,
-      rentIncome: +rentIncome._sum.amount || 0,
-      totalIncome: (+income._sum.amount || 0) + (+rentIncome._sum.amount || 0),
+      rentIncome: +totalRentIncome || 0,
+      totalIncome: (+income._sum.amount || 0) + (+totalRentIncome || 0),
       outcome: +outcome._sum.amount || 0,
       total:
         (+income._sum.amount || 0) +
-        (+rentIncome._sum.amount || 0) -
+        (+totalRentIncome || 0) -
         (+outcome._sum.amount || 0),
       duty: +duty._sum.guaranteeAmount || 0,
       cash_duty: +cash_duty._sum.guaranteeAmount || 0,
@@ -162,16 +173,41 @@ export class MonitoringService {
       },
     });
 
-    const rentIncome = await this.prisma.rent.aggregate({
-      _sum: {
-        adminIncome: true,
-        investorIncome: true,
-        partnerIncome: true,
-      },
-      where: {
-        AND: [{ status: 'PAID' }],
+    // Fetch rent data with extensions
+    const rentsWithExtensions = await this.prisma.rent.findMany({
+      where: { status: 'PAID' },
+      include: {
+        Rent_Extensions: {
+          where: { status: 'PAID' },
+        },
       },
     });
+
+    // Initialize manual aggregation totals
+    let totalAdminRentIncome = 0;
+    let totalInvestorRentIncome = 0;
+    let totalPartnerRentIncome = 0;
+
+    // Manual aggregation
+    rentsWithExtensions.forEach(rent => {
+      // Calculate total extension amount
+      const totalExtensionAmount = rent.Rent_Extensions.reduce(
+        (sum, extension) => sum + (extension.amount || 0),
+        0
+      );
+
+      // Total amount from rent and extensions
+      const totalRentIncome = rent.amount + totalExtensionAmount;
+
+      // Extract percentages from incomePercentage array
+      const [adminPercent, investorPercent, partnerPercent] = rent.incomePersentage;
+
+      // Calculate incomes based on percentages
+      totalAdminRentIncome += (adminPercent / 100) * totalRentIncome;
+      totalInvestorRentIncome += (investorPercent / 100) * totalRentIncome;
+      totalPartnerRentIncome += (partnerPercent / 100) * totalRentIncome;
+    });
+
     const adminOutcome = await this.prisma.outcome.aggregate({
       _sum: {
         amount: true,
@@ -199,15 +235,15 @@ export class MonitoringService {
     return {
       adminIncome:
         +adminIncome._sum.amount +
-        rentIncome._sum.adminIncome -
+        totalAdminRentIncome -
         adminOutcome._sum.amount,
       investorIncome:
         +investorIncome._sum.amount +
-        rentIncome._sum.investorIncome -
+        totalInvestorRentIncome -
         investorOutcome._sum.amount,
       partnerIncome:
         +partnerIncome._sum.amount +
-        rentIncome._sum.partnerIncome -
+        totalPartnerRentIncome -
         partnerOutcome._sum.amount,
     };
   }
@@ -405,12 +441,42 @@ export class MonitoringService {
         },
         include: {
           Car: true,
+          Rent_Extensions: {
+            where: {
+              status: 'PAID',
+            },
+          },
         },
         orderBy: { endDate: 'desc' },
         skip,
         take,
       });
-    
+
+      rentHistory.forEach(rent => {
+       
+        // Calculate total extension amount
+        const totalExtensionAmount = rent.Rent_Extensions.reduce(
+          (sum, extension) => sum + (extension.amount || 0),
+          0
+        );
+        
+        // Update the total rent amount
+        rent.amount += totalExtensionAmount;
+      
+        // Extract percentages from incomePercentage array
+        const [adminPercent, investorPercent, partnerPercent] = rent.incomePersentage;
+      
+        // Calculate additional income based on percentages
+        const additionalAdminIncome = (adminPercent / 100) * totalExtensionAmount;
+        const additionalInvestorIncome = (investorPercent / 100) * totalExtensionAmount;
+        const additionalPartnerIncome = (partnerPercent / 100) * totalExtensionAmount;
+      
+        // Update incomes based on calculated values
+        rent.adminIncome += additionalAdminIncome;
+        rent.investorIncome += additionalInvestorIncome;
+        rent.partnerIncome += additionalPartnerIncome;
+       });
+      
       const incomeHistory = await this.prisma.income.findMany({
         where: {},
         orderBy: { createdAt: 'desc' },
@@ -532,8 +598,6 @@ export class MonitoringService {
     }
     
      
-
-
     async findRentsByMonth(year: number, month: number) {
       return await this.prisma.rent.count({
         where: {
@@ -564,7 +628,26 @@ export class MonitoringService {
           //AND: [{ isGuaranteeReturned: true}]
         },
       });
-  
+
+      const rentExtensionsIncome = await this.prisma.rent_Extensions.aggregate({
+        _sum: {
+          amount: true,
+        },
+        where: {
+          createdAt: {
+            gte: new Date(year, month - 1, 1), // Дата окончания аренды >= начало текущего месяца
+            lt: new Date(year, month, 1), // Дата окончания аренды < начало следующего месяца
+          },
+          status: {
+            in: ['PAID'], // Статус должен быть 'PAID' или 'DUTY'
+          },
+          //AND: [{ isGuaranteeReturned: true}]
+        },
+      });
+
+      const totalRentIncome =
+        +(rentIncome._sum.amount || 0) + +(rentExtensionsIncome._sum.amount || 0);
+
       const income = await this.prisma.income.aggregate({
         _sum: {
           amount: true,
@@ -629,9 +712,11 @@ export class MonitoringService {
           AND: [{ isGuaranteeReturned: false }, { guaranteeType: 'CARD' }],
         },
       });
+
+    
       const sum = {
         income: +income._sum.amount,
-        rentIncome: +rentIncome._sum.amount,
+        rentIncome: +totalRentIncome,
         totalIncome: +income._sum.amount + rentIncome._sum.amount,
         outcome: +outcome._sum.amount,
         total: income._sum.amount + rentIncome._sum.amount - outcome._sum.amount,
