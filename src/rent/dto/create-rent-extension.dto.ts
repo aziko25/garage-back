@@ -5,6 +5,9 @@ export class CreateRentExtensionDto {
 
   extendedDaysQuantity: number;
 
+  startDate: Date;
+  endDate: Date;
+
   @ApiProperty({ enum: ['PAID', 'IN_PROCESS', 'DUTY'] })
   status: Status;
 

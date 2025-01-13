@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,24 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-enum Owner {
-  ADMIN
-  INVESTOR
-  PARTNER
-}
-
-enum Status {
-  PLEDGE
-  PAID
-  DUTY
-  IN_PROCESS
-}
-
-enum PaymentType {
-  CASH
-  CARD
 }
 
 model Car {
@@ -56,22 +32,24 @@ model Rent {
   adminIncome         Int
   investorIncome      Int
   partnerIncome       Int
+  carId               Int
   isGuaranteeReturned Boolean?          @default(false)
   isRentExtended      Boolean?          @default(false)
   Car                 Car               @relation(fields: [carId], references: [id])
-  carId               Int
   Rent_Extensions     Rent_Extensions[]
 }
 
 model Rent_Extensions {
   id                   Int         @id @default(autoincrement())
-  createdAt           DateTime     @default(now())
-  Rent                 Rent        @relation(fields: [rentId], references: [id])
   rentId               Int
   extendedDaysQuantity Int
   status               Status
   amount               Int
   paymentType          PaymentType
+  createdAt            DateTime    @default(now())
+  endDate              DateTime?
+  startDate            DateTime?
+  Rent                 Rent        @relation(fields: [rentId], references: [id])
 }
 
 model Income {
@@ -88,4 +66,22 @@ model Outcome {
   comment   String
   amount    Int
   createdAt DateTime @default(now())
+}
+
+enum Owner {
+  ADMIN
+  INVESTOR
+  PARTNER
+}
+
+enum Status {
+  PLEDGE
+  PAID
+  DUTY
+  IN_PROCESS
+}
+
+enum PaymentType {
+  CASH
+  CARD
 }
