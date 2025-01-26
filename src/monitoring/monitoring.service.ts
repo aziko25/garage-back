@@ -612,42 +612,160 @@ export class MonitoringService {
     }
   
     async findIncomeByMonth(year: number, month: number) {
-  
-      const rentIncome = await this.prisma.rent.aggregate({
+      
+      const rentIncomeCash = await this.prisma.rent.aggregate({
         _sum: {
           amount: true,
         },
         where: {
           startDate: {
-            gte: new Date(year, month - 1, 1), // Дата окончания аренды >= начало текущего месяца
-            lt: new Date(year, month, 1), // Дата окончания аренды < начало следующего месяца
+            gte: new Date(year, month - 1, 1),
+            lt: new Date(year, month, 1),
           },
           status: {
-            in: ['PAID'], // Статус должен быть 'PAID' или 'DUTY'
+            in: ['PAID'],
           },
-          //AND: [{ isGuaranteeReturned: true}]
+          paymentType: 'CASH', // Добавляем фильтр для наличных
         },
       });
 
-      const rentExtensionsIncome = await this.prisma.rent_Extensions.aggregate({
+      const rentPaidIncomeCash = await this.prisma.rent.aggregate({
+        _sum: {
+          amountPaid: true,
+        },
+        where: {
+          startDate: {
+            gte: new Date(year, month - 1, 1),
+            lt: new Date(year, month, 1),
+          },
+          status: {
+            notIn: ['PAID'],
+          },
+          paymentType: 'CASH', // Добавляем фильтр для наличных
+        },
+      });
+
+      const totRentIncomeCash = rentIncomeCash._sum.amount + rentPaidIncomeCash._sum.amountPaid;
+
+
+    
+      const rentIncomeCard = await this.prisma.rent.aggregate({
+        _sum: {
+          amount: true,
+        },
+        where: {
+          startDate: {
+            gte: new Date(year, month - 1, 1),
+            lt: new Date(year, month, 1),
+          },
+          status: {
+            in: ['PAID'],
+          },
+          paymentType: 'CARD', // Добавляем фильтр для карт
+        },
+      });
+
+      const rentPaidIncomeCard = await this.prisma.rent.aggregate({
+        _sum: {
+          amountPaid: true,
+        },
+        where: {
+          startDate: {
+            gte: new Date(year, month - 1, 1),
+            lt: new Date(year, month, 1),
+          },
+          status: {
+            notIn: ['PAID'],
+          },
+          paymentType: 'CARD', // Добавляем фильтр для карт
+        },
+      });
+
+      const totRentIncomeCard = rentIncomeCard._sum.amount + rentPaidIncomeCard._sum.amountPaid;
+
+
+    
+      const rentExtensionsIncomeCash = await this.prisma.rent_Extensions.aggregate({
         _sum: {
           amount: true,
         },
         where: {
           createdAt: {
-            gte: new Date(year, month - 1, 1), // Дата окончания аренды >= начало текущего месяца
-            lt: new Date(year, month, 1), // Дата окончания аренды < начало следующего месяца
+            gte: new Date(year, month - 1, 1),
+            lt: new Date(year, month, 1),
           },
           status: {
-            in: ['PAID'], // Статус должен быть 'PAID' или 'DUTY'
+            in: ['PAID'],
           },
-          //AND: [{ isGuaranteeReturned: true}]
+          paymentType: 'CASH', // Добавляем фильтр для наличных
         },
       });
 
-      const totalRentIncome =
-        +(rentIncome._sum.amount || 0) + +(rentExtensionsIncome._sum.amount || 0);
+      const rentPaidExtensionsIncomeCash = await this.prisma.rent_Extensions.aggregate({
+        _sum: {
+          amountPaid: true,
+        },
+        where: {
+          createdAt: {
+            gte: new Date(year, month - 1, 1),
+            lt: new Date(year, month, 1),
+          },
+          status: {
+            notIn: ['PAID'],
+          },
+          paymentType: 'CASH', // Добавляем фильтр для наличных
+        },
+      });
 
+      const totRentExtensionIncomeCash = rentExtensionsIncomeCash._sum.amount + rentPaidExtensionsIncomeCash._sum.amountPaid;
+
+
+    
+      const rentExtensionsIncomeCard = await this.prisma.rent_Extensions.aggregate({
+        _sum: {
+          amount: true,
+        },
+        where: {
+          createdAt: {
+            gte: new Date(year, month - 1, 1),
+            lt: new Date(year, month, 1),
+          },
+          status: {
+            in: ['PAID'],
+          },
+          paymentType: 'CARD', // Добавляем фильтр для карт
+        },
+      });
+
+      const rentPaidExtensionsIncomeCard = await this.prisma.rent_Extensions.aggregate({
+        _sum: {
+          amountPaid: true,
+        },
+        where: {
+          createdAt: {
+            gte: new Date(year, month - 1, 1),
+            lt: new Date(year, month, 1),
+          },
+          status: {
+            notIn: ['PAID'],
+          },
+          paymentType: 'CARD', // Добавляем фильтр для карт
+        },
+      });
+
+      const totRentExtensionIncomeCard = rentExtensionsIncomeCard._sum.amount + rentPaidExtensionsIncomeCard._sum.amountPaid;
+
+
+
+    
+      const totalRentIncomeCash =
+        +(totRentIncomeCash || 0) + +(totRentExtensionIncomeCash || 0);
+    
+      const totalRentIncomeCard =
+        +(totRentIncomeCard || 0) + +(totRentExtensionIncomeCard || 0);
+    
+      const totalRentIncome = totalRentIncomeCash + totalRentIncomeCard;
+    
       const income = await this.prisma.income.aggregate({
         _sum: {
           amount: true,
@@ -659,7 +777,7 @@ export class MonitoringService {
           ],
         },
       });
-  
+    
       const outcome = await this.prisma.outcome.aggregate({
         _sum: {
           amount: true,
@@ -671,7 +789,7 @@ export class MonitoringService {
           ],
         },
       });
-  
+    
       const duty = await this.prisma.rent.aggregate({
         _sum: {
           guaranteeAmount: true,
@@ -712,21 +830,22 @@ export class MonitoringService {
           AND: [{ isGuaranteeReturned: false }, { guaranteeType: 'CARD' }],
         },
       });
-
     
       const sum = {
         income: +income._sum.amount,
         rentIncome: +totalRentIncome,
-        totalIncome: +income._sum.amount + rentIncome._sum.amount,
+        rentIncomeCash: +totalRentIncomeCash,
+        rentIncomeCard: +totalRentIncomeCard,
+        totalIncome: +income._sum.amount + totalRentIncome,
         outcome: +outcome._sum.amount,
-        total: income._sum.amount + rentIncome._sum.amount - outcome._sum.amount,
+        total: income._sum.amount + totalRentIncome - outcome._sum.amount,
         duty: +duty._sum.guaranteeAmount,
         cash_duty: +cash_duty._sum.guaranteeAmount,
         card_duty: +card_duty._sum.guaranteeAmount,
         cash_pledge: +cash_pledge._sum.guaranteeAmount,
         card_pledge: +card_pledge._sum.guaranteeAmount,
       };
-  
+    
       return sum;
-    }
+    }    
 }

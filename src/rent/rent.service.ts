@@ -88,6 +88,7 @@ export class RentService {
             extendedDaysQuantity: createRentExtensionDto.extendedDaysQuantity,
             status: createRentExtensionDto.status,
             amount: createRentExtensionDto.amount,
+            amountPaid: createRentExtensionDto.amountPaid,
             paymentType: createRentExtensionDto.paymentType,
             startDate: createRentExtensionDto.startDate,
             endDate: createRentExtensionDto.endDate,
@@ -150,6 +151,7 @@ export class RentService {
           extendedDaysQuantity: updateRentExtensionDto.extendedDaysQuantity,
           status: updateRentExtensionDto.status,
           amount: updateRentExtensionDto.amount,
+          amountPaid: updateRentExtensionDto.amountPaid,
           paymentType: updateRentExtensionDto.paymentType,
           startDate: updateRentExtensionDto.startDate,
           endDate: updateRentExtensionDto.endDate,
@@ -202,22 +204,27 @@ export class RentService {
         where: { id },
       });
   
-      // Update the related rent's end date to the latest extension (if any)
+      // Find the latest extension for the related rent (if any)
       const latestExtension = await this.prisma.rent_Extensions.findFirst({
         where: { rentId: extension.rentId },
         orderBy: { endDate: 'desc' },
       });
+
+      const rent = await this.prisma.rent.findUnique({
+        where: { id: extension.rentId },
+      });
   
       if (latestExtension) {
+        // Update the rent's end date to the latest extension's end date
         await this.prisma.rent.update({
           where: { id: extension.rentId },
-          data: { endDate: latestExtension.endDate },
+          data: { endDate: latestExtension.endDate, isRentExtended: true },
         });
       } else {
-        // If no extensions exist, reset the rent's end date
+        // If no extensions exist, reset the rent's end date and update isRentExtended
         await this.prisma.rent.update({
           where: { id: extension.rentId },
-          data: { endDate: null },
+          data: { endDate: rent?.initialEndData, isRentExtended: false },
         });
       }
   
@@ -229,7 +236,7 @@ export class RentService {
         error.status || HttpStatus.BAD_REQUEST,
       );
     }
-  }  
+  }
   
   async getExtensionById(id: number) {
 

@@ -23,10 +23,12 @@ model Rent {
   phoneNumber         String
   startDate           DateTime
   endDate             DateTime
+  initialEndData      DateTime?
   status              Status
   guaranteeAmount     Int
   guaranteeType       PaymentType
   amount              Int
+  amountPaid          Int?
   paymentType         PaymentType
   incomePersentage    Int[]
   adminIncome         Int
@@ -45,6 +47,7 @@ model Rent_Extensions {
   extendedDaysQuantity Int
   status               Status
   amount               Int
+  amountPaid           Int?
   paymentType          PaymentType
   createdAt            DateTime    @default(now())
   endDate              DateTime?

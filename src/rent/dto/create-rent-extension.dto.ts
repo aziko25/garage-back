@@ -12,6 +12,7 @@ export class CreateRentExtensionDto {
   status: Status;
 
   amount: number;
+  amountPaid: number;
   @ApiProperty({ enum: ['CASH', 'CARD'] })
   paymentType: PaymentType;
 }

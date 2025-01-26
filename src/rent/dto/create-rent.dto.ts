@@ -6,11 +6,13 @@ export class CreateRentDto {
   phoneNumber: string;
   startDate: Date;
   endDate: Date;
+  initialEndData: Date;
   @ApiProperty({ enum: ['PAID', 'IN_PROCESS', 'DUTY'] })
   status: Status;
   guaranteeType: PaymentType;
   guaranteeAmount: number;
   amount: number;
+  amountPaid: number;
   @ApiProperty({ enum: ['CASH', 'CARD'] })
   paymentType: PaymentType;
   @ApiProperty({
