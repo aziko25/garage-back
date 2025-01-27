@@ -15,6 +15,9 @@ export class CreateRentDto {
   amountPaid: number;
   @ApiProperty({ enum: ['CASH', 'CARD'] })
   paymentType: PaymentType;
+  @ApiProperty({ enum: ['CASH', 'CARD'] })
+  amountPaidPaymentType: PaymentType;
+
   @ApiProperty({
     type: 'array',
     items: { type: 'number' },

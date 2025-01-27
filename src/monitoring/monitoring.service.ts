@@ -20,36 +20,51 @@ export class MonitoringService {
     });
   }
   
+
   async findIncome(page: number, pageSize: number) {
-    
-    page = Math.max(page, 1); // Ensure page is at least 1
-    pageSize = Math.max(pageSize, 1); // Ensure pageSize is at least 1
+    page = Math.max(page, 1);
+    pageSize = Math.max(pageSize, 1);
     const skip = (page - 1) * pageSize;
     const take = pageSize;
-  
-    const rentData = await this.prisma.rent.findMany({
-      where: {
-        status: {
-          in: ['PAID'], // Fetch only PAID rents
+
+    // Fetch PAID rents
+    const paidRents = await this.prisma.rent.findMany({
+        where: { status: { in: ['PAID'] } },
+        include: {
+            Rent_Extensions: { select: { amount: true } },
         },
-      },
-      include: {
-        Rent_Extensions: {
-          select: {
-            amount: true, // Include only the amount from extensions
-          },
-        },
-      },
-      skip,
-      take,
+        skip,
+        take,
     });
-    
-    // Calculate the total sum
-    const totalRentIncome = rentData.reduce((total, rent) => {
-      const rentAmount = rent.amount || 0;
-      const extensionsAmount = rent.Rent_Extensions.reduce((sum, ext) => sum + (ext.amount || 0), 0);
-      return total + rentAmount + extensionsAmount;
+
+    // Calculate total income from PAID rents
+    const totalPaidIncome = paidRents.reduce((total, rent) => {
+        const rentAmount = rent.amount || 0;
+        const extensionsAmount = rent.Rent_Extensions.reduce((sum, ext) => sum + (ext.amount || 0), 0);
+        return total + rentAmount + extensionsAmount;
     }, 0);
+
+    // Fetch NON-PAID rents
+    const nonPaidRents = await this.prisma.rent.findMany({
+        where: { status: { notIn: ['PAID'] } }, // Fetch non-PAID rents
+        include: {
+            Rent_Extensions: { select: { amountPaid: true } }, // Include amountPaid
+        },
+        skip,
+        take,
+    });
+
+    // Calculate total received payments from NON-PAID rents
+    const totalNonPaidIncome = nonPaidRents.reduce((total, rent) => {
+        const rentAmountPaid = rent.amountPaid || 0; // Only amountPaid for non-PAID rents
+        const extensionsAmountPaid = rent.Rent_Extensions.reduce(
+            (sum, ext) => sum + (ext.amountPaid || 0),
+            0
+        );
+        return total + rentAmountPaid + extensionsAmountPaid;
+    }, 0);
+
+    const totalRentIncome = totalPaidIncome + totalNonPaidIncome;
   
     const income = await this.prisma.income.aggregate({
       _sum: {
@@ -641,7 +656,7 @@ export class MonitoringService {
           status: {
             notIn: ['PAID'],
           },
-          paymentType: 'CASH', // Добавляем фильтр для наличных
+          amountPaidPaymentType: 'CASH', // Добавляем фильтр для наличных
         },
       });
 
@@ -677,7 +692,7 @@ export class MonitoringService {
           status: {
             notIn: ['PAID'],
           },
-          paymentType: 'CARD', // Добавляем фильтр для карт
+          amountPaidPaymentType: 'CARD', // Добавляем фильтр для карт
         },
       });
 
@@ -713,7 +728,7 @@ export class MonitoringService {
           status: {
             notIn: ['PAID'],
           },
-          paymentType: 'CASH', // Добавляем фильтр для наличных
+          amountPaidPaymentType: 'CASH', // Добавляем фильтр для наличных
         },
       });
 
@@ -749,7 +764,7 @@ export class MonitoringService {
           status: {
             notIn: ['PAID'],
           },
-          paymentType: 'CARD', // Добавляем фильтр для карт
+          amountPaidPaymentType: 'CARD', // Добавляем фильтр для карт
         },
       });
 

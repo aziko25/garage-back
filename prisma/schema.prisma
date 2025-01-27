@@ -29,6 +29,7 @@ model Rent {
   guaranteeType       PaymentType
   amount              Int
   amountPaid          Int?
+  amountPaidPaymentType PaymentType?
   paymentType         PaymentType
   incomePersentage    Int[]
   adminIncome         Int
@@ -48,6 +49,7 @@ model Rent_Extensions {
   status               Status
   amount               Int
   amountPaid           Int?
+  amountPaidPaymentType PaymentType?
   paymentType          PaymentType
   createdAt            DateTime    @default(now())
   endDate              DateTime?
