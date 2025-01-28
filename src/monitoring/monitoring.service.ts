@@ -99,6 +99,8 @@ export class MonitoringService {
       take: take,
     });
 
+    console.log(outcomeCash);
+
     const outcomeCard = await this.prisma.outcome.aggregate({
       _sum: {
         amount: true,
