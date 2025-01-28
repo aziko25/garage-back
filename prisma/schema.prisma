@@ -62,6 +62,7 @@ model Income {
   owner     Owner
   comment   String
   amount    Int
+  paymentType          PaymentType?
   createdAt DateTime @default(now())
 }
 
@@ -70,6 +71,7 @@ model Outcome {
   owner     Owner
   comment   String
   amount    Int
+  paymentType          PaymentType?
   createdAt DateTime @default(now())
 }
 

@@ -66,23 +66,49 @@ export class MonitoringService {
 
     const totalRentIncome = totalPaidIncome + totalNonPaidIncome;
   
-    const income = await this.prisma.income.aggregate({
+    const incomeCash = await this.prisma.income.aggregate({
       _sum: {
         amount: true,
       },
-      where: {},
+      where: {
+        paymentType: "CASH",
+      },
       skip,
       take: take,
     });
+
+    const incomeCard = await this.prisma.income.aggregate({
+      _sum: {
+        amount: true,
+      },
+      where: {
+        paymentType: "CARD",
+      },
+      skip,
+      take: take,
+    });
+
+    const totalIncome = incomeCash._sum.amount + incomeCard._sum.amount;
   
-    const outcome = await this.prisma.outcome.aggregate({
+    const outcomeCash = await this.prisma.outcome.aggregate({
       _sum: {
         amount: true,
       },
-      where: {},
+      where: { paymentType: "CASH" },
       skip,
       take: take,
     });
+
+    const outcomeCard = await this.prisma.outcome.aggregate({
+      _sum: {
+        amount: true,
+      },
+      where: { paymentType: "CARD" },
+      skip,
+      take: take,
+    });
+
+    const totalOutcome = outcomeCash._sum.amount + outcomeCard._sum.amount;
   
     const duty = await this.prisma.rent.aggregate({
       _sum: {
@@ -144,14 +170,18 @@ export class MonitoringService {
     });
   
     const sum = {
-      income: +income._sum.amount || 0,
+      income: +totalIncome || 0,
+      incomeCash: +incomeCash._sum.amount || 0,
+      incomeCard: +incomeCard._sum.amount || 0,
       rentIncome: +totalRentIncome || 0,
-      totalIncome: (+income._sum.amount || 0) + (+totalRentIncome || 0),
-      outcome: +outcome._sum.amount || 0,
+      totalIncome: (+totalIncome || 0) + (+totalRentIncome || 0),
+      outcome: +totalOutcome || 0,
+      outcomeCash: +outcomeCash._sum.amount || 0,
+      outcomeCard: +outcomeCard._sum.amount || 0,
       total:
-        (+income._sum.amount || 0) +
+        (+totalIncome || 0) +
         (+totalRentIncome || 0) -
-        (+outcome._sum.amount || 0),
+        (+totalOutcome || 0),
       duty: +duty._sum.guaranteeAmount || 0,
       cash_duty: +cash_duty._sum.guaranteeAmount || 0,
       card_duty: +card_duty._sum.guaranteeAmount || 0,
